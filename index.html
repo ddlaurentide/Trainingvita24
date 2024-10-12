@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="styles.css">
+  <title>Volunteer Check-In Report</title>
+</head>
+<body>
+  <h1>Volunteer Check-In Report</h1>
+  <button id="downloadCsvButton">Download CSV</button>
+  <br>
+  <table id="checkInTable" border="1">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Location</th>
+          <th>Check-In Date</th>
+          <th>Check-In Time</th>
+        </tr>
+      </thead>
+      <tbody id="checkInTableBody">
+        <!-- Rows will be dynamically populated here -->
+      </tbody>
+  </table>
+
+  <script type="module">
+    // Import the functions you need from the SDKs you need
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js";
+    import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js";
+
+    // Your web app's Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyBTMegfcO_iHdPvXbZF9Aqs-SxOIy5DHio",
+      authDomain: "volunteers-training-f144c.firebaseapp.com",
+      projectId: "volunteers-training-f144c",
+      storageBucket: "volunteers-training-f144c.appspot.com",
+      messagingSenderId: "181303999705",
+      appId: "1:181303999705:web:716b61defeb45a63b312c8"
+    };
+
+    // Initialize Firebase app using the configuration
+    const app = initializeApp(firebaseConfig);
+    // Get Firestore database instance
+    const db = getFirestore(app);
+
+    // Reference to the "checkIns" collection
+    const checkInsRef = collection(db, 'checkIns');
+
+    // Function to load check-in data from Firestore and populate the table
+    async function loadCheckInData() {
+      try {
+        // Get all documents from the "checkIns" collection
+        const querySnapshot = await getDocs(checkInsRef);
+
+        // Reference to the table body element
+        const tableBody = document.getElementById('checkInTableBody');
+
+        // Clear the table body before adding new data
+        tableBody.innerHTML = '';
+
+        // Iterate through each document in the collection
+         querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          const name = data.name;
+          const location = data.location || 'Unknown';  // Use 'Unknown' if location is not available
+          const checkInTime = new Date(data.checkInTime);
+          const checkInDate = checkInTime.toLocaleDateString();
+          const checkInHour = checkInTime.toLocaleTimeString();
+
+          // Create a new table row with the check-in data
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${name}</td>
+            <td>${location}</td>
+            <td>${checkInDate}</td>
+            <td>${checkInHour}</td>
+          `;
+
+          // Append the new row to the table body
+          tableBody.appendChild(row);
+        });
+      } catch (error) {
+        console.error('Error fetching check-in data: ', error);
+        alert('Failed to load check-in data.');
+      }
+    }
+
+    // Function to download table data as CSV
+    function downloadCSV() {
+      let csvContent = "Name,Location,Check-In Date,Check-In Time\n";
+      const rows = document.querySelectorAll('#checkInTable tbody tr');
+
+      // Iterate through each row in the table to gather data
+      rows.forEach(row => {
+        const columns = row.querySelectorAll('td');
+        const rowData = Array.from(columns).map(column => column.textContent);
+        csvContent += rowData.join(",") + "\n";
+      });
+
+      // Create a downloadable link and trigger it
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = 'check_in_report.csv';
+      link.click();
+    }
+
+    // Add event listener to download CSV button
+    document.getElementById('downloadCsvButton').addEventListener('click', downloadCSV);
+
+    // Load the check-in data when the page loads
+    document.addEventListener('DOMContentLoaded', loadCheckInData);
+  </script>
+</body>
+</html>
